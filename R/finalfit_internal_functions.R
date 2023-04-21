@@ -185,22 +185,25 @@ extract_fit.lmerMod = function(.data, explanatory_name="explanatory", estimate_n
 #' @export
 extract_fit.coxph = function(.data, explanatory_name="explanatory", estimate_name="HR",
 														 estimate_suffix = "",
-														 p_name = "p", ...){
+														 p_name = "p", conf.int=0.95, ...){
 	x = .data
-	results = summary(x)$conf.int
+	smx = summary(x, conf.int=conf.int)
+	results = smx$conf.int
 	# Below is required to cope with difference in output when `frailty()` included
-	explanatory = row.names(summary(x)$coefficients)[
-		row.names(summary(x)$coefficients) %in% row.names(summary(x)$conf.int)
+	explanatory = row.names(smx$coefficients)[
+		row.names(smx$coefficients) %in% row.names(smx$conf.int)
 		]
 	estimate = results[explanatory, 1]
 	confint_L = results[explanatory, 3]
 	confint_U = results[explanatory, 4]
 	
-	p = summary(x)$coefficients[explanatory,
-															dim(summary(x)$coefficients)[2]]
+	p = smx$coefficients[explanatory,
+															dim(smx$coefficients)[2]]
 	
+	conf = round(conf.int * 100)
+	conf_range = c(sprintf("L%d", conf), sprintf("U%d", conf) )
 	df.out = dplyr::tibble(explanatory, estimate, confint_L, confint_U, p)
-	colnames(df.out) = c(explanatory_name, paste0(estimate_name, estimate_suffix), "L95", "U95", p_name)
+	colnames(df.out) = c(explanatory_name, paste0(estimate_name, estimate_suffix), conf_range[1], conf_range[2], p_name)
 	df.out = data.frame(df.out)
 	return(df.out)
 }
